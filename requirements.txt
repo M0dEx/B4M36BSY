@@ -1,1 +1,2 @@
-PyGitHub==1.55
+PyGitHub~=1.55
+requests~=2.26.0
