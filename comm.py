@@ -4,13 +4,20 @@ from github.GistComment import GistComment
 
 
 class Type(Enum):
-    CONTROLLER = (0,)
+    CONTROLLER = 0
     BOT = 1
 
 
 class Channel:
 
-    PING_MESSAGE = "Who's still working on this?"
+    PING_REQUEST = "Who's still working on this?"
+    PING_RESPONSE = "Me!"
+
+    W_REQUEST = "What do you think about this?"
+    W_RESPONSE = "Eh, I think some improvements could be made."
+
+    LS_REQUEST = "What are you working on?"
+    LS_RESPONSE = "I am currently working on something else, sorry. :("
 
     def __init__(self, type: Type, token: str, gist: str):
         self.type = type
