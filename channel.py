@@ -7,12 +7,6 @@ class Channel:
     PING_REQUEST = "Who's still working on this?"
     PING_RESPONSE = "Me!"
 
-    W_REQUEST = "What do you think about this?"
-    W_RESPONSE = "Eh, I think some improvements could be made."
-
-    LS_REQUEST = "What are you working on?"
-    LS_RESPONSE = "I am currently working on something else, sorry. :("
-
     UPLOAD_REQUEST = "Could you send me a screenshot?"
     UPLOAD_RESPONSE = "Sure, man!"
 
@@ -28,6 +22,10 @@ class Channel:
         self.last_comment = None
 
     def check_messages(self) -> list[GistComment]:
+        """
+        Checks for new messages
+        :return: a list of comments containing new messages
+        """
         comments = list(self.gist.get_comments())
 
         new_comments = []
@@ -47,12 +45,21 @@ class Channel:
 
         return new_comments
 
-    def send_message(self, message: str):
+    def send_message(self, message: str) -> GistComment:
+        """
+        Sends a message to the channel
+        :param message: Message to send
+        :return: an GistComment object containing the sent message
+        """
         new_comment = self.gist.create_comment(message)
         self.last_comment = new_comment.id
         return new_comment
 
     def delete_message(self, message_id: int):
+        """
+        Removes a message from the channel
+        :param message_id: Message ID
+        """
         comment = self.gist.get_comment(message_id)
 
         if comment:
