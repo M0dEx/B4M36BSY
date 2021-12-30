@@ -1,5 +1,6 @@
 from github import Github
 from github.GistComment import GistComment
+from typing import List
 
 
 class Channel:
@@ -21,12 +22,15 @@ class Channel:
         self.gist = self.connector.get_gist(gist)
         self.last_comment = None
 
-    def check_messages(self) -> list[GistComment]:
+    def check_messages(self) -> List[GistComment]:
         """
         Checks for new messages
         :return: a list of comments containing new messages
         """
-        comments = list(self.gist.get_comments())
+        try:
+            comments = list(self.gist.get_comments())
+        except Exception:
+            comments = []
 
         new_comments = []
 
@@ -34,7 +38,7 @@ class Channel:
             return new_comments
 
         if self.last_comment is None:
-            self.last_comment = comments[len(comments) - 1].id
+            self.last_comment = comments[min(len(comments) - 2, 0)].id
 
         old_last_idx = next(
             (x for x in range(len(comments)) if comments[x].id == self.last_comment),

