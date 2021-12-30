@@ -15,6 +15,12 @@ from nacl.signing import VerifyKey
 
 class Bot:
     def __init__(self, token: str, gist: str, verify_key: str):
+        """
+        Initializes the Bot object.
+        :param token: GitHub personal access token
+        :param gist: Gist ID
+        :param verify_key: The public key used for verifying command signatures
+        """
         self.channel = Channel(token, gist)
         self.unprocessed_commands = Queue()
         self.active = True

@@ -11,6 +11,12 @@ from nacl.signing import SigningKey
 
 class Controller:
     def __init__(self, token: str, gist: str, signing_seed: str):
+        """
+        Initializes the Controller object.
+        :param token: GitHub personal access token
+        :param gist: Gist ID
+        :param signing_seed: The seed to use for generation of singing private key
+        """
         self.channel = Channel(token, gist)
         self.active = True
         self.response_thread = threading.Thread(
