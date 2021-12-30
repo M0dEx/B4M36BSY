@@ -1,4 +1,4 @@
-# Gister Bot
+# Gister
 ## Description
 C&C CLI controller and bot that use gist.github.com for communication.
 The bot uses comments under a given Gist to communicate with the controller.  
