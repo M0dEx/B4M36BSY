@@ -20,7 +20,7 @@ class Channel:
     def __init__(self, token: str, gist: str):
         self.connector = Github(token)
         self.gist = self.connector.get_gist(gist)
-        self.last_comment = None
+        self.last_comment = 0
 
     def check_messages(self) -> List[GistComment]:
         """
@@ -37,14 +37,10 @@ class Channel:
         if not comments:
             return new_comments
 
-        if self.last_comment is None:
-            self.last_comment = comments[min(len(comments) - 2, 0)].id
+        for comment in comments:
+            if comment.id > self.last_comment:
+                new_comments.append(comment)
 
-        old_last_idx = next(
-            (x for x in range(len(comments)) if comments[x].id == self.last_comment),
-            len(comments) - 1,
-        )
-        new_comments.extend(comments[old_last_idx + 1 :])
         self.last_comment = comments[len(comments) - 1].id
 
         return new_comments
