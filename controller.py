@@ -26,7 +26,9 @@ class Controller:
         self.last_ping = None
 
         self.signing_key = SigningKey(base64.b64decode(signing_seed.encode("utf-8")))
-        print(f"Verify key: {base64.b64encode(self.signing_key.verify_key.encode()).decode('utf-8')}")
+        print(
+            f"Verify key: {base64.b64encode(self.signing_key.verify_key.encode()).decode('utf-8')}"
+        )
 
         self.bots = {}
         self.bots_lock = threading.Lock()
@@ -75,9 +77,7 @@ class Controller:
                     output_end = response.body.find(")", output_begin)
 
                     output = base64.b64decode(
-                        response.body[
-                            output_begin : output_end
-                        ].encode("utf-8")
+                        response.body[output_begin:output_end].encode("utf-8")
                     ).decode("utf-8")
 
                     print(f"\n{output}")

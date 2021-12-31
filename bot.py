@@ -6,8 +6,6 @@ import requests
 from queue import Empty
 from queue import Queue
 
-from typing import List
-
 from nacl.exceptions import BadSignatureError
 
 from channel import Channel
@@ -94,9 +92,7 @@ class Bot:
                     else None
                 )
                 if command:
-                    self.execute_command(
-                        command, Channel.BINARY_RESPONSE, response_id
-                    )
+                    self.execute_command(command, Channel.BINARY_RESPONSE, response_id)
 
             # TODO: Additional commands
 
