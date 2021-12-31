@@ -210,10 +210,10 @@ class Controller:
             else:
                 print("The given bot is invalid or the given bot is offline")
 
-    def execute_binary(self, args: List[str]):
+    def execute_command(self, args: List[str]):
         """
-        Executes an arbitrary binary on the target bot OS
-        :param args: The binary with arguments
+        Executes an arbitrary command on the target OS
+        :param args: The command
         """
         with self.bots_lock:
             if not self.selected_bot:

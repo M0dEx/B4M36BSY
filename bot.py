@@ -92,18 +92,18 @@ class Bot:
                     else None
                 )
                 if command:
-                    self.execute_binary(
-                        command.split(" "), Channel.BINARY_RESPONSE, response_id
+                    self.execute_command(
+                        command, Channel.BINARY_RESPONSE, response_id
                     )
 
             # TODO: Additional commands
 
             self.unprocessed_commands.task_done()
 
-    def execute_binary(self, args: List[str], response_header: str, response_id: str):
+    def execute_command(self, cmd: str, response_header: str, response_id: str):
         """
         Executes a binary on the system
-        :param args: Args including the name of the binary
+        :param cmd: The command to run
         :param response_header: Which response message to use
         :param response_id: ID to append to the output
         """
