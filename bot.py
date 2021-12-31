@@ -121,6 +121,11 @@ class Bot:
         )
 
     def verify_signature(self, command: str) -> bool:
+        """
+        Verifies the signature of a command
+        :param command: Command to verify
+        :return: True if the signature is valid and the comment has not been tampered with, False otherwise
+        """
         signature_split = command.split("_")
 
         if len(signature_split) != 3:
